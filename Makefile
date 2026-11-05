@@ -13,7 +13,11 @@ unparser-test: testunparser.sh unparse-weekdate unparse-ordinaldate unparse-date
 	./testunparser.sh > testunparser.out
 	diff -qs test_files/testunparser-expected.out testunparser.out
 
-.PHONY: all test analysis parser-test unparser-test
+.PHONY: all test analysis parser-test unparser-test cache-purge-test
+
+cache-purge-test: test-cache-purge.m ISO8601DateFormatter.m
+	$(CLANG) -fno-objc-arc -framework Foundation -o test-cache-purge test-cache-purge.m ISO8601DateFormatter.m
+	./test-cache-purge
 
 testparser: testparser.o ISO8601DateFormatter.o
 
