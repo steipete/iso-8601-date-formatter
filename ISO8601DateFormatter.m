@@ -39,25 +39,32 @@ const unichar ISO8601DefaultTimeSeparatorCharacter = DEFAULT_TIME_SEPARATOR;
 
 @end
 
-static NSDictionary *timeZonesByOffset;
+static NSCache *timeZonesByOffset;
 
 #if ISO8601_TESTING_PURPOSES_ONLY
 //This method only exists for use by the project's test cases. DO NOT use this in an application.
 extern bool ISO8601DateFormatter_GlobalCachesAreWarm(void);
 
+static BOOL timeZoneCacheIsWarm;
+
 bool ISO8601DateFormatter_GlobalCachesAreWarm(void) {
-	return (timeZonesByOffset != nil) && (timeZonesByOffset.count > 0);
+	return timeZoneCacheIsWarm;
 }
 #endif
 
 @implementation ISO8601DateFormatter
 
++ (void) initialize {
+	if (self == [ISO8601DateFormatter class]) {
+		timeZonesByOffset = [[NSCache alloc] init];
+	}
+}
+
 + (void) purgeGlobalCaches {
-    @synchronized (self) {
-        NSDictionary *oldCache = timeZonesByOffset;
-        timeZonesByOffset = nil;
-        [oldCache release];
-    }
+	[timeZonesByOffset removeAllObjects];
+#if ISO8601_TESTING_PURPOSES_ONLY
+	timeZoneCacheIsWarm = NO;
+#endif
 }
 
 - (NSCalendar *) makeCalendarWithDesiredConfiguration {
@@ -597,10 +604,11 @@ static BOOL is_leap_year(NSUInteger year);
 							if (!timeZone) {
 								timeZone = [NSTimeZone timeZoneForSecondsFromGMT:timeZoneOffset];
 								if (timeZone) {
-                                    NSMutableDictionary *mutableTimeZonesByOffset = [NSMutableDictionary dictionaryWithDictionary:timeZonesByOffset];
-									mutableTimeZonesByOffset[offsetNum] = timeZone;
-                                    timeZonesByOffset = [mutableTimeZonesByOffset copy];
-                                }
+									[timeZonesByOffset setObject:timeZone forKey:offsetNum];
+#if ISO8601_TESTING_PURPOSES_ONLY
+									timeZoneCacheIsWarm = YES;
+#endif
+								}
 							}
 						}
 				}
